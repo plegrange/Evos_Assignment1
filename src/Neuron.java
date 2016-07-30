@@ -3,7 +3,7 @@
  */
 public class Neuron {
 
-    public Neuron(String[] stringVector) {
+    public Neuron() {
 
     }
 }
