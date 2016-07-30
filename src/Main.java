@@ -23,7 +23,8 @@ public class Main {
             e.printStackTrace();
         }
         populateSets();
-        displaySet(validationSet);
+        displayDoubles(normalizeSet(trainingSet));
+        displayBounds();
     }
 
 
@@ -46,7 +47,21 @@ public class Main {
         }
     }
 
+    private List<double[]> normalizeSet(List<int[]> set) {
+        double[] normalizedVector = new double[8];
+        List<double[]> normalizedSet = new ArrayList<>();
+        for (int[] vec : set) {
+            for (int x = 0; x < 8; x++) {
+                normalizedVector[x] = normalize(vec[x], x);
+            }
+            normalizedSet.add(normalizedVector);
+        }
+        return normalizedSet;
+    }
+
     private void initializeBounds() {
+        upperBound = new int[8];
+        lowerBound = new int[8];
         for (int i = 0; i < 8; i++) {
             upperBound[i] = -9999;
             lowerBound[i] = 9999999;
@@ -54,6 +69,9 @@ public class Main {
     }
 
     private void updateBounds(int[] vector) {
+        if (vector[3] == 0) {
+            System.out.print("");
+        }
         for (int i = 0; i < 8; i++) {
             if (vector[i] > upperBound[i]) {
                 upperBound[i] = vector[i];
@@ -79,8 +97,9 @@ public class Main {
                 for (int x = 0; x < 8; x++) {
                     Cell cell = sheet.getCell(x, y);
                     newVector[x] = Integer.parseInt(cell.getContents());
-                    updateBounds(newVector);
+
                 }
+                updateBounds(newVector);
                 completeSet.add(newVector);
 
             }
@@ -89,7 +108,7 @@ public class Main {
         }
     }
 
-    private void displaySet(List<int[]> set) {
+    private void displayInts(List<int[]> set) {
         for (int[] vec : set) {
             for (int i = 0; i < 8; i++) {
                 System.out.print(" " + vec[i]);
@@ -98,8 +117,28 @@ public class Main {
         }
         System.out.println(set.size());
     }
+    private void displayDoubles(List<double[]> set) {
+        for (double[] vec : set) {
+            for (int i = 0; i < 8; i++) {
+                System.out.print(" " + vec[i]);
+            }
+            System.out.println();
+        }
+        System.out.println(set.size());
+    }
+
+    private void displayBounds() {
+        for (int i = 0; i < 8; i++) {
+            System.out.print(" " + upperBound[i]);
+        }
+        System.out.println();
+        for (int i = 0; i < 8; i++) {
+            System.out.print(" " + lowerBound[i]);
+        }
+        System.out.println();
+    }
 
     private double normalize(int value, int index) {
-        return (value - lowerBound[index]) / (upperBound[index] - lowerBound[index]);
+        return (Double.valueOf(value) - Double.valueOf(lowerBound[index])) / (Double.valueOf(upperBound[index]) - Double.valueOf(lowerBound[index]));
     }
 }
