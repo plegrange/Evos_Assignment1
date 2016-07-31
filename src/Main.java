@@ -48,9 +48,10 @@ public class Main {
     }
 
     private List<double[]> normalizeSet(List<int[]> set) {
-        double[] normalizedVector = new double[8];
+        double[] normalizedVector;
         List<double[]> normalizedSet = new ArrayList<>();
         for (int[] vec : set) {
+            normalizedVector = new double[8];
             for (int x = 0; x < 8; x++) {
                 normalizedVector[x] = normalize(vec[x], x);
             }
