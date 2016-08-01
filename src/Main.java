@@ -23,17 +23,47 @@ public class Main {
             e.printStackTrace();
         }
         populateSets();
-        displayDoubles(normalizeSet(trainingSet));
-        displayBounds();
+        // displayDoubles(normalizeSet(trainingSet));
+        //displayBounds();
+        train();
+        validate();
     }
 
+    private void validate() {
+        for (int[] pattern : validationSet) {
+            double[] vector = normalizeVector(pattern);
+            validatePattern(vector);
+        }
+
+    }
+
+    private void validatePattern(double[] vector) {
+        double predictedSal = neuron.predictSalary(vector);
+        predictedSal = denormalize(predictedSal);
+        String s = String.format("%.2f  -> %.2f", denormalize(vector[0]),predictedSal);
+        System.out.println(s);
+    }
+
+    private double[] normalizeVector(int[] vector) {
+        double[] normalizedVector = new double[8];
+        for (int i = 0; i < 8; i++) {
+            normalizedVector[i] = normalize(vector[i], i);
+        }
+        return normalizedVector;
+    }
+
+    private double denormalize(double sal) {
+        return sal * (upperBound[0] - lowerBound[0]) + lowerBound[0];
+    }
 
     List<int[]> completeSet, trainingSet, validationSet;
     int[] lowerBound, upperBound;
     private String inputFile = "C:\\Users\\FuBaR\\IdeaProjects\\Evos_Assignment1\\SalData.xls";
+    private Neuron neuron;
 
     private void train() {
-
+        neuron = new Neuron();
+        neuron.train(normalizeSet(trainingSet));
     }
 
     private void populateSets() {
@@ -74,8 +104,8 @@ public class Main {
             System.out.print("");
         }
         for (int i = 0; i < 8; i++) {
-            if (vector[i] > upperBound[i]) {
-                upperBound[i] = vector[i];
+            if (vector[i] * 2 > upperBound[i]) {
+                upperBound[i] = vector[i] * 2;
             }
             if (vector[i] < lowerBound[i]) {
                 lowerBound[i] = vector[i];
@@ -118,6 +148,7 @@ public class Main {
         }
         System.out.println(set.size());
     }
+
     private void displayDoubles(List<double[]> set) {
         for (double[] vec : set) {
             for (int i = 0; i < 8; i++) {
