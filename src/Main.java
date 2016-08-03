@@ -1,22 +1,34 @@
 import jxl.Cell;
 import jxl.Sheet;
 import jxl.Workbook;
+import jxl.WorkbookSettings;
 import jxl.read.biff.BiffException;
+import jxl.write.Number;
+import jxl.write.WritableSheet;
+import jxl.write.WritableWorkbook;
+import jxl.write.WriteException;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Created by FuBaR on 7/29/2016.
  */
 public class Main {
     public static void main(String[] args) {
-        new Main();
+        try {
+            new Main();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (WriteException e) {
+            e.printStackTrace();
+        }
     }
 
-    public Main() {
+    public Main() throws IOException, WriteException {
         try {
             read();
         } catch (IOException e) {
@@ -25,23 +37,59 @@ public class Main {
         populateSets();
         // displayDoubles(normalizeSet(trainingSet));
         //displayBounds();
-        train();
-        validate();
+        double[] learningRates = new double[1000];
+        double[] errors = new double[1000];
+        double bestRate = 0, error, prevError;
+        double bestError = 999999999;
+        double learningRate = 0.01;
+        for (int i = 0; i < 1000; i++) {
+            train(learningRate);
+            error = validate();
+            if (error < bestError) {
+                bestError = error;
+                bestRate = learningRate;
+            }
+            if (error > bestError)
+                break;
+            //learningRates[i] = learningRate;
+            //errors[i] = error;
+            learningRate += 0.001;
+        }
+        displayTrainingSSE();
+        //write(learningRates, errors);
+        neuron.displayWeights();
+        System.out.println("Best learning rate: " + bestRate + " -> Best SSE: " + bestError);
+        System.out.println("SSE on validationSet: " + Math.sqrt(validate()/100));
+        evaluateData();
     }
 
-    private void validate() {
+    private double validate() {
+        double SSE = 0;
         for (int[] pattern : validationSet) {
             double[] vector = normalizeVector(pattern);
-            validatePattern(vector);
+            SSE += validatePattern(vector);
         }
+        // System.out.println(SSE);
+        return SSE;
 
     }
 
-    private void validatePattern(double[] vector) {
+    private double validatePattern(double[] vector) {
         double predictedSal = neuron.predictSalary(vector);
         predictedSal = denormalize(predictedSal);
-        String s = String.format("%.2f  -> %.2f", denormalize(vector[0]),predictedSal);
-        System.out.println(s);
+        String s = String.format("%.5f  -> %.5f", denormalize(vector[0]), predictedSal);
+       // System.out.println(s);
+        return Math.pow(denormalize(vector[0]) - predictedSal, 2);
+    }
+
+    private void displayTrainingSSE() {
+        double SSE = 0;
+        for (int[] pattern : trainingSet) {
+            double[] vector = normalizeVector(pattern);
+            SSE += validatePattern(vector);
+        }
+        // System.out.println(SSE);
+        System.out.println("Training Set SSE: " + SSE);
     }
 
     private double[] normalizeVector(int[] vector) {
@@ -56,13 +104,13 @@ public class Main {
         return sal * (upperBound[0] - lowerBound[0]) + lowerBound[0];
     }
 
-    List<int[]> completeSet, trainingSet, validationSet;
+    List<int[]> completeSet, trainingSet, validationSet, evaluationSet;
     int[] lowerBound, upperBound;
     private String inputFile = "C:\\Users\\FuBaR\\IdeaProjects\\Evos_Assignment1\\SalData.xls";
     private Neuron neuron;
 
-    private void train() {
-        neuron = new Neuron();
+    private void train(double learningRate) {
+        neuron = new Neuron(learningRate);
         neuron.train(normalizeSet(trainingSet));
     }
 
@@ -137,6 +185,65 @@ public class Main {
         } catch (BiffException e) {
             e.printStackTrace();
         }
+    }
+
+    private String evaluationFile = "C://Users//FuBaR//IdeaProjects//Evos_Assignment1/Evaluation.xls";
+
+    private void evaluateData() throws IOException {
+        evaluationSet = new ArrayList<>();
+        File inputWorkbook = new File(evaluationFile);
+        Workbook workbook;
+        try {
+            workbook = Workbook.getWorkbook(inputWorkbook);
+            Sheet sheet = workbook.getSheet(0);
+            int[] newVector;
+            for (int y = 1; y < 11; y++) {
+                newVector = new int[8];
+                newVector[0] = 0;
+                for (int x = 1; x < 8; x++) {
+                    Cell cell = sheet.getCell(x - 1, y);
+                    newVector[x] = Integer.parseInt(cell.getContents());
+
+                }
+
+                evaluationSet.add(newVector);
+
+            }
+        } catch (BiffException e) {
+            e.printStackTrace();
+        }
+        System.out.println("Evaluation: ");
+        for (int[] vector : evaluationSet) {
+            double[] normalizedVector = normalizeVector(vector);
+            double predictedSalary = neuron.predictSalary(normalizedVector);
+            double denormalizedSalary = denormalize(predictedSalary);
+            System.out.println(Math.round(denormalizedSalary));
+        }
+    }
+
+    private String outputFile = "C://Users//FuBaR//IdeaProjects//Evos_Assignment1/output.xls";
+
+    private void write(double[] learningRates, double[] SSE) throws IOException, WriteException {
+        File file = new File(outputFile);
+        WorkbookSettings wbSettings = new WorkbookSettings();
+
+        wbSettings.setLocale(new Locale("en", "EN"));
+
+        WritableWorkbook workbook = Workbook.createWorkbook(file, wbSettings);
+        workbook.createSheet("Report", 0);
+        WritableSheet excelSheet = workbook.getSheet(0);
+
+        Number learningRate, sse;
+
+        for (int i = 0; i < learningRates.length; i++) {
+            learningRate = new Number(0, i, learningRates[i]);
+            sse = new Number(1, i, SSE[i]);
+            excelSheet.addCell(learningRate);
+            excelSheet.addCell(sse);
+        }
+
+        workbook.write();
+        workbook.close();
     }
 
     private void displayInts(List<int[]> set) {

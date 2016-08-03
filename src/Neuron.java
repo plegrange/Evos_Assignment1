@@ -9,9 +9,10 @@ public class Neuron {
     double[] weights;
     double targetSalary, predictedSalary;
     double bias = -1;
-    double learningRate = 0.9;
+    double learningRate;
 
-    public Neuron() {
+    public Neuron(double learningRate) {
+        this.learningRate = learningRate;
         weights = new double[8];
         for (int i = 0; i < 8; i++) {
             weights[i] = 1;
@@ -19,14 +20,16 @@ public class Neuron {
     }
 
     public void train(List<double[]> trainingSet) {
-        for (double[] vector : trainingSet) {
-            inputs = new double[8];
-            for (int i = 0; i < 7; i++) {
-                inputs[i] = vector[i + 1];
+        for (int j = 0; j < 30; j++) {
+            for (double[] vector : trainingSet) {
+                inputs = new double[8];
+                for (int i = 0; i < 7; i++) {
+                    inputs[i] = vector[i + 1];
+                }
+                targetSalary = vector[0];
+                inputs[7] = bias;
+                updateWeights();
             }
-            targetSalary = vector[0];
-            inputs[7] = bias;
-            updateWeights();
         }
         //displayWeights();
     }
@@ -40,10 +43,13 @@ public class Neuron {
         return net();
     }
 
-    private void displayWeights() {
+    public void displayWeights() {
+        System.out.println("Final Weights: ");
         for (int i = 0; i < 8; i++) {
-            System.out.print(weights[i]);
+            String weight = String.format(" %.5f ", weights[i]);
+            System.out.print(weight);
         }
+        System.out.println();
     }
 
     private void updateWeights() {
